@@ -18,6 +18,7 @@ class BulkListingView(APIView):
     """
     Handles both bulk and single listing creation.
     """
+    permission_classes = [AllowAny]
     @swagger_auto_schema(
         request_body=openapi.Schema(
             type=openapi.TYPE_ARRAY,
@@ -35,44 +36,33 @@ class BulkListingView(APIView):
         ),
         responses={201: "Created", 400: "Bad Request"}
     )
+    
     def post(self, request):
         data = request.data
-
-        # ✅ Ensure we’re working with a list
         if isinstance(data, dict):
-            # Single object — wrap in a list
             data = [data]
         elif not isinstance(data, list):
-            return Response(
-                {"error": "Expected a JSON object or a list of objects."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Expected a JSON object or a list of objects."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         created = []
         errors = []
 
-        # ✅ Wrap operations in a transaction
         with transaction.atomic():
             for item in data:
-                # Add owner if authenticated
-                if request.user.is_authenticated:
-                    item["owner"] = request.user.id
-
-                serializer = ListingSerializer(data=item)
+                serializer = ListingSerializer(data=item, context={'request': request})
                 if serializer.is_valid():
                     serializer.save()
                     created.append(serializer.data)
                 else:
                     errors.append(serializer.errors)
 
-        return Response(
-            {
-                "created_count": len(created),
-                "created": created,
-                "errors": errors,
-            },
-            status=status.HTTP_201_CREATED
-        )
+        return Response({
+            "created_count": len(created),
+            "created": created,
+            "errors": errors,
+        }, status=status.HTTP_201_CREATED)
+
 class ListingAPIView(APIView):
     """
     Handles GET (list + filter + pagination), POST (create)
@@ -112,7 +102,6 @@ class ListingAPIView(APIView):
     )
 
     def get(self, request):
-        # Filtering params
         category = request.GET.get("category")
         status_param = request.GET.get("status")
         city = request.GET.get("city")
@@ -122,7 +111,6 @@ class ListingAPIView(APIView):
 
         listings = Listing.objects.all().order_by("-created_at")
 
-        # Apply filters
         if category:
             listings = listings.filter(category=category)
         if status_param:
@@ -136,57 +124,44 @@ class ListingAPIView(APIView):
                 Q(city__icontains=search)
             )
 
-        # Pagination
         paginator = Paginator(listings, limit)
         paginated_listings = paginator.get_page(page)
 
         serializer = ListingSerializer(paginated_listings, many=True)
-        response_data = {
+        return Response({
             "results": serializer.data,
             "total": paginator.count,
             "page": page,
-            "pages": paginator.num_pages,
-        }
+            "pages": paginator.num_pages
+        }, status=status.HTTP_200_OK)
 
-        return Response(response_data, status=status.HTTP_200_OK)
-    
     
     @swagger_auto_schema(request_body=ListingSerializer)
     def post(self, request):
         data = request.data
-
-        # Handle both single and multiple JSON objects
         if isinstance(data, dict):
             data = [data]
         elif not isinstance(data, list):
-            return Response(
-                {"error": "Expected a JSON object or a list of objects."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Expected a JSON object or a list of objects."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         created = []
         errors = []
 
         with transaction.atomic():
             for item in data:
-                if request.user.is_authenticated:
-                    item["owner"] = request.user.id
-
-                serializer = ListingSerializer(data=item)
+                serializer = ListingSerializer(data=item, context={'request': request})
                 if serializer.is_valid():
                     serializer.save()
                     created.append(serializer.data)
                 else:
                     errors.append(serializer.errors)
 
-        return Response(
-            {
-                "created_count": len(created),
-                "created": created,
-                "errors": errors,
-            },
-            status=status.HTTP_201_CREATED
-        )
+        return Response({
+            "created_count": len(created),
+            "created": created,
+            "errors": errors,
+        }, status=status.HTTP_201_CREATED)
 
 
 

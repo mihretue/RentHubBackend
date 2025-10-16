@@ -4,21 +4,26 @@ import uuid
 
 User = settings.AUTH_USER_MODEL
 
-class Category(models.TextChoices):
-    HOUSE = "HOUSE"
-    APARTMENT = "APARTMENT"
-    CABIN = "CABIN"
-    VILLA = "VILLA"
-    CAR = "CAR"
-    BOAT = "BOAT"
-    OTHER = "OTHER"
 
-class ListingStatus(models.TextChoices):
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-    PENDING = "PENDING"
 
 class Listing(models.Model):
+    class Category(models.TextChoices):
+        HOUSE = "HOUSE"
+        APARTMENT = "APARTMENT"
+        CABIN = "CABIN"
+        VILLA = "VILLA"
+        CAR = "CAR"
+        BOAT = "BOAT"
+        OTHER = "OTHER"
+        OFFICE = "office"
+        LAND = "land"
+
+    class ListingStatus(models.TextChoices):
+        ACTIVE = "ACTIVE"
+        INACTIVE = "INACTIVE"
+        PENDING = "PENDING"
+    
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
     description = models.TextField()
