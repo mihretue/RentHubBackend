@@ -7,13 +7,34 @@ from django.db.models import Q
 from django.db import transaction
 from .models import Listing
 from .serializers import ListingSerializer
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.permissions import AllowAny
+
+
 
 #Bulk upload or bulk post to try multiple
 class BulkListingView(APIView):
     """
     Handles both bulk and single listing creation.
     """
-
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Items(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "title": openapi.Schema(type=openapi.TYPE_STRING),
+                    "category": openapi.Schema(type=openapi.TYPE_STRING),
+                    "status": openapi.Schema(type=openapi.TYPE_STRING),
+                    "city": openapi.Schema(type=openapi.TYPE_STRING),
+                    "description": openapi.Schema(type=openapi.TYPE_STRING),
+                },
+                required=["title", "category"]
+            ),
+        ),
+        responses={201: "Created", 400: "Bad Request"}
+    )
     def post(self, request):
         data = request.data
 
@@ -56,6 +77,39 @@ class ListingAPIView(APIView):
     """
     Handles GET (list + filter + pagination), POST (create)
     """
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'category', openapi.IN_QUERY, description="Filter by category",
+                type=openapi.TYPE_STRING,
+                enum=["apartment", "villa", "office", "land"]  # Dropdown values here
+            ),
+            openapi.Parameter(
+                'status', openapi.IN_QUERY, description="Filter by status",
+                type=openapi.TYPE_STRING,
+                enum=["available", "sold", "rented"]
+            ),
+            openapi.Parameter(
+                'city', openapi.IN_QUERY, description="Filter by city name",
+                type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                'search', openapi.IN_QUERY, description="Search text in title, city, description",
+                type=openapi.TYPE_STRING
+            ),
+            openapi.Parameter(
+                'page', openapi.IN_QUERY, description="Page number",
+                type=openapi.TYPE_INTEGER, default=1
+            ),
+            openapi.Parameter(
+                'limit', openapi.IN_QUERY, description="Items per page",
+                type=openapi.TYPE_INTEGER, default=10
+            ),
+        ],
+        responses={200: ListingSerializer(many=True)}
+    )
 
     def get(self, request):
         # Filtering params
@@ -95,7 +149,9 @@ class ListingAPIView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
-
+    
+    
+    @swagger_auto_schema(request_body=ListingSerializer)
     def post(self, request):
         data = request.data
 
@@ -146,7 +202,7 @@ class ListingDetailAPIView(APIView):
         listing = self.get_object(pk)
         serializer = ListingSerializer(listing)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
+    @swagger_auto_schema(request_body=ListingSerializer)
     def put(self, request, pk):
         listing = self.get_object(pk)
         serializer = ListingSerializer(listing, data=request.data)
@@ -154,7 +210,8 @@ class ListingDetailAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    @swagger_auto_schema(request_body=ListingSerializer)
     def patch(self, request, pk):
         listing = self.get_object(pk)
         serializer = ListingSerializer(listing, data=request.data, partial=True)
