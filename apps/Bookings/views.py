@@ -1,10 +1,10 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.utils import timezone
 from .models import Booking, Payment, PaymentNote, PaymentStatus
 from .serializers import BookingSerializer, PaymentSerializer, PaymentNoteSerializer
-
+from django_filters.rest_framework import DjangoFilterBackend
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all().select_related("renter", "owner", "listing")
