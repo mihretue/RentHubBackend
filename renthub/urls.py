@@ -19,6 +19,8 @@ from django.urls import path, include
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from django_rest_passwordreset.views import ResetPasswordRequestToken, ResetPasswordConfirm
 
 
 
@@ -34,7 +36,31 @@ schema_view = get_schema_view(
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
+# Override only for Swagger docs
+ResetPasswordRequestToken.post = swagger_auto_schema(
+    operation_description="Send password reset link to email",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'email': openapi.Schema(type=openapi.TYPE_STRING, description='User email'),
+        },
+        required=['email'],
+    ),
+    responses={200: 'Reset link sent if email exists.'},
+)(ResetPasswordRequestToken.post)
 
+ResetPasswordConfirm.post = swagger_auto_schema(
+    operation_description="Confirm password reset with token",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'token': openapi.Schema(type=openapi.TYPE_STRING),
+            'password': openapi.Schema(type=openapi.TYPE_STRING),
+        },
+        required=['token', 'password'],
+    ),
+    responses={200: 'Password reset successful.'},
+)(ResetPasswordConfirm.post)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include("apps.Users.urls")),
