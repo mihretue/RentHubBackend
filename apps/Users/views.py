@@ -4,6 +4,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model, authenticate
 from apps.Users.serializers.registrationSerializer import UserRegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+import jwt
 
 User = get_user_model()
 
@@ -50,7 +51,7 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
-        user = authenticate(request, username=email, password=password)
+        user = authenticate(request, email=email, password=password)
 
         if not user:
             return Response({'error': 'Invalid credentials'}, status=401)

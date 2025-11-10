@@ -109,6 +109,9 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ]
 }
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 #jwt
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
