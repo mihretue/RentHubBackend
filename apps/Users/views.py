@@ -5,10 +5,24 @@ from django.contrib.auth import get_user_model, authenticate
 from apps.Users.serializers.registrationSerializer import UserRegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import jwt
+from django.conf import settings
+from django.core.mail import send_mail
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from apps.Users.serializers.registrationSerializer import UserRegisterSerializer
+
 
 User = get_user_model()
 
 class UserRegisterView(APIView):
+    @swagger_auto_schema(
+        operation_description="Register a new user and send a verification email.",
+        request_body=UserRegisterSerializer,
+        responses={
+            201: openapi.Response("User registered successfully"),
+            400: openapi.Response("Email already registered or invalid input"),
+        },
+    )
     def post(self, request):
         username = request.data.get('username')
         email = request.data.get('email')
@@ -48,6 +62,19 @@ class VerifyEmailView(APIView):
             return Response({'error': 'Invalid token'}, status=400)
 
 class LoginView(APIView):
+    @swagger_auto_schema(
+        operation_description="Login user and get JWT tokens.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                'password': openapi.Schema(type=openapi.TYPE_STRING),
+            },
+            required=['email', 'password']
+        ),
+        responses={200: "Tokens returned on successful login."}
+    )
+
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')

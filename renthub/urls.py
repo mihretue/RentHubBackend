@@ -6,7 +6,6 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from django_rest_passwordreset.views import ResetPasswordRequestToken, ResetPasswordConfirm
 
-
 # --- Helper function to safely apply swagger_auto_schema ---
 def safe_swagger_auto_schema(view_method, **kwargs):
     """Apply swagger_auto_schema safely even if previously applied"""
